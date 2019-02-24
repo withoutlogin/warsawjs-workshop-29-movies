@@ -7,7 +7,7 @@
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-module.exports = "<p>\n  movie-list-page works!\n</p>\n\n<mat-spinner *ngIf=\"loading\"></mat-spinner>\n<ul *ngIf=\"!loading\">\n  <li *ngFor=\"let movie of movies\">\n    movie: <a [routerLink]=\"['./', movie.id]\"> \"{{ movie.title }} </a>\n  </li>\n</ul>\n"
+module.exports = "<mat-spinner *ngIf=\"loading\"></mat-spinner>\n\n<ul *ngIf=\"!loading\">\n  <li *ngFor=\"let movie of movies\">\n    movie: <a [routerLink]=\"['./', movie.id]\"> \"{{ movie.title }} </a>\n  </li>\n</ul>\n"
 
 /***/ }),
 
@@ -35,23 +35,28 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var tslib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! tslib */ "./node_modules/tslib/tslib.es6.js");
 /* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @angular/core */ "./node_modules/@angular/core/fesm5/core.js");
 /* harmony import */ var _shared_module_movie_service__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../shared-module/movie.service */ "./src/app/shared-module/movie.service.ts");
+/* harmony import */ var rxjs__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! rxjs */ "./node_modules/rxjs/_esm5/index.js");
+
 
 
 
 var MovieListPageComponent = /** @class */ (function () {
     function MovieListPageComponent(movieService) {
         this.page = 1;
-        this.perPage = 4;
         this.loading = false;
+        this.subs = new rxjs__WEBPACK_IMPORTED_MODULE_3__["Subscription"]();
         this.movieService = movieService;
     }
     MovieListPageComponent.prototype.ngOnInit = function () {
         var _this = this;
         this.loading = true;
-        this.movieService.getLastMovies(this.perPage, (this.page - 1) * this.perPage).then(function (data) {
+        this.subs.add(this.movieService.fetchList(this.page).subscribe(function (data) {
             _this.movies = data;
             _this.loading = false;
-        });
+        }));
+    };
+    MovieListPageComponent.prototype.ngOnDestroy = function () {
+        this.subs.unsubscribe();
     };
     MovieListPageComponent = tslib__WEBPACK_IMPORTED_MODULE_0__["__decorate"]([
         Object(_angular_core__WEBPACK_IMPORTED_MODULE_1__["Component"])({
@@ -75,7 +80,7 @@ var MovieListPageComponent = /** @class */ (function () {
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-module.exports = "<h1>Detale</h1>\n<app-movie-details [movie]=\"movie\"></app-movie-details>\n"
+module.exports = "<app-movie-details [movie]=\"movie\"></app-movie-details>\n"
 
 /***/ }),
 
@@ -320,7 +325,7 @@ var MovieResolver = /** @class */ (function () {
         console.log('test');
     }
     MovieResolver.prototype.resolve = function (route, state) {
-        return this.movieService.getMovie(parseInt(route.params.id, 10));
+        return this.movieService.fetchMovie(parseInt(route.params.id, 10));
     };
     MovieResolver = tslib__WEBPACK_IMPORTED_MODULE_0__["__decorate"]([
         Object(_angular_core__WEBPACK_IMPORTED_MODULE_1__["Injectable"])(),
@@ -340,7 +345,7 @@ var MovieResolver = /** @class */ (function () {
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-module.exports = "<div class=\"movie_details--wrapper\">\n  hej ho\n  <h2>{{ title }}</h2>\n</div>\n"
+module.exports = "<div class=\"movie_details--wrapper\">\n  <h2>{{ title }}</h2>\n  <p>{{ description }}</p>\n  <img [src]=\"imageSrc\" [alt]=\"title\" style=\"width: 400px\"/>\n</div>\n"
 
 /***/ }),
 
@@ -372,16 +377,30 @@ __webpack_require__.r(__webpack_exports__);
 
 
 var MovieDetailsComponent = /** @class */ (function () {
-    //
-    // get title() {
-    //   return this.movie.title;
-    // }
-    // /**/ description: string;
-    //  imageSrc: string;
     function MovieDetailsComponent() {
-        // this.description = movie.description;
-        // this.imageSrc = movie.posterSrc;
     }
+    Object.defineProperty(MovieDetailsComponent.prototype, "title", {
+        //
+        get: function () {
+            return this.movie.title;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(MovieDetailsComponent.prototype, "description", {
+        get: function () {
+            return this.movie.description;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(MovieDetailsComponent.prototype, "imageSrc", {
+        get: function () {
+            return this.movie.posterSrc;
+        },
+        enumerable: true,
+        configurable: true
+    });
     MovieDetailsComponent.prototype.ngOnInit = function () {
     };
     tslib__WEBPACK_IMPORTED_MODULE_0__["__decorate"]([
@@ -470,58 +489,72 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @angular/core */ "./node_modules/@angular/core/fesm5/core.js");
 /* harmony import */ var _angular_common_http__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @angular/common/http */ "./node_modules/@angular/common/fesm5/http.js");
 /* harmony import */ var _models_movie_model__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./models/movie-model */ "./src/app/shared-module/models/movie-model.ts");
+/* harmony import */ var rxjs_operators__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! rxjs/operators */ "./node_modules/rxjs/_esm5/operators/index.js");
 
 
 
 
+
+var API_URL = 'http://vps135320.ovh.net:1234';
+var API_METHODS = {
+    fetchList: API_URL + "/list/:page",
+    fetchMovie: API_URL + "/movie/:id"
+};
 var MovieService = /** @class */ (function () {
     function MovieService(http) {
-        this.data = http.get('http://vps135320.ovh.net:1234/list/');
-        // this.data = [
-        //   { id: 1, title: 'Matrix Reloaded', description: 'Matrix Reloaded Description'},
-        //   { id: 2, title: 'Matrix 2', description: 'Matrix 2 Description'},
-        //   { id: 3, title: 'Matrix Impossibru', description: 'Matrix Impossibru Description'},
-        //   { id: 4, title: 'Kot w Butach', description: 'Kot w Butach Description'},
-        //   { id: 5, title: '13 dzielnica', description: '13 dzielnica Description'},
-        // ];
+        this.http = http;
     }
     MovieService_1 = MovieService;
     MovieService.map = function (obj) {
-        return new _models_movie_model__WEBPACK_IMPORTED_MODULE_3__["MovieModel"](obj.id, obj.title, "Rating: " + obj.rating, obj.posterSrc);
+        return new _models_movie_model__WEBPACK_IMPORTED_MODULE_3__["MovieModel"](+obj.id, obj.title, "Rating: " + obj.rating, obj.posterSrc);
     };
-    MovieService.prototype.getLastMovies = function (limit, offset) {
-        if (limit === void 0) { limit = 3; }
-        if (offset === void 0) { offset = 0; }
-        return tslib__WEBPACK_IMPORTED_MODULE_0__["__awaiter"](this, void 0, void 0, function () {
-            var data;
-            return tslib__WEBPACK_IMPORTED_MODULE_0__["__generator"](this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.data.toPromise()];
-                    case 1:
-                        data = _a.sent();
-                        return [2 /*return*/, data ? data.slice(offset, limit).map(function (obj) { return MovieService_1.map(obj); }) : []];
-                }
-            });
-        });
+    MovieService.mapList = function (obs) {
+        return obs.map(function (obj) { return new _models_movie_model__WEBPACK_IMPORTED_MODULE_3__["MovieModel"](+obj.id, obj.title, "Rating: " + obj.rating, obj.posterSrc); });
     };
-    MovieService.prototype.getMovie = function (id) {
-        return tslib__WEBPACK_IMPORTED_MODULE_0__["__awaiter"](this, void 0, void 0, function () {
-            var data, obj;
-            return tslib__WEBPACK_IMPORTED_MODULE_0__["__generator"](this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.data.toPromise()];
-                    case 1:
-                        data = _a.sent();
-                        if (data) {
-                            obj = data.find(function (m) { return m.id === id; });
-                            if (obj) {
-                                return [2 /*return*/, MovieService_1.map(obj)];
-                            }
-                        }
-                        return [2 /*return*/, null];
-                }
-            });
+    // public getMovies$(): Observable<MovieModel[]> {
+    //   return this.dataSubject.asObservable();
+    // }
+    //
+    // private fetchMovies() {
+    //   (this.http.get('http://vps135320.ovh.net:1234/list/') as Observable<RemoteMovieData[]>)
+    //     .pipe(map(MovieService.mapList))
+    //     .subscribe((res: MovieModel[]) => {
+    //       this.dataSubject.next(res);
+    //     });
+    // }
+    //
+    // public getMovies(): Observable<MovieModel[]> {
+    //   const movies = this.dataSubject.getValue();
+    //
+    // }
+    //
+    // public async getMovie(id: number): Promise<MovieModel> {
+    //   const obs = new Observable();
+    //   const movies = this.dataSubject.subscribe(movies => {
+    //     const movie = movies.find(m => m.id === id);
+    //     obs.
+    //   });
+    //   return movies
+    // }
+    MovieService.prototype.fetchList = function (page) {
+        if (page === void 0) { page = 1; }
+        return this.makeRequest(API_METHODS.fetchList, {
+            page: page
+        }).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["map"])(MovieService_1.mapList));
+    };
+    MovieService.prototype.fetchMovie = function (id) {
+        return this.makeRequest(API_METHODS.fetchMovie, {
+            id: id
+        }).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["map"])(MovieService_1.map));
+    };
+    MovieService.prototype.makeRequest = function (url, params) {
+        if (params === void 0) { params = {}; }
+        Object.entries(params)
+            .forEach(function (_a) {
+            var key = _a[0], value = _a[1];
+            url = url.replace(":" + key, value);
         });
+        return this.http.get(url);
     };
     var MovieService_1;
     MovieService = MovieService_1 = tslib__WEBPACK_IMPORTED_MODULE_0__["__decorate"]([
